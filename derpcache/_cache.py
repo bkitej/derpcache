@@ -72,7 +72,7 @@ def _hash_args(*args, **kwargs):
     args_str = str(sorted(_to_string(x) for x in args))
     kwargs_str = _to_string(kwargs)
     string_hash = args_str + kwargs_str
-    return hashlib.sha256(string_hash.encode()).hexdigest()
+    return hashlib.sha256(string_hash.encode()).hexdigest()[:8]
 
 
 def get_index():
