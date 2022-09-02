@@ -2,6 +2,8 @@ from collections import OrderedDict
 from datetime import datetime
 from derpcache import _cache
 from faker import Faker
+from typing import Tuple
+from typing import Union
 import logging
 import pytest
 
@@ -9,26 +11,30 @@ import pytest
 faker = Faker()
 
 
+_RandomValue = Union[str, int, float]
+_RandomDepthDict = dict
+
+
 @pytest.fixture(autouse=True)
-def _autoclear_cache():
+def _autoclear_cache() -> None:
     yield
     _cache.clear_cache()
 
 
 @pytest.fixture()
-def now():
+def now() -> str:
     return datetime.utcnow().isoformat()
 
 
-def _randomize_value():
+def _randomize_value() -> _RandomValue:
     return faker.random_element((faker.pyfloat, faker.pyint, faker.lexify))()
 
 
-def _randomize_args():
+def _randomize_args() -> Tuple[_RandomValue]:
     return tuple(_randomize_value() for _ in range(faker.pyint(2, 4)))
 
 
-def _randomize_kwargs(depth=1):
+def _randomize_kwargs(depth: int = 1) -> _RandomDepthDict:
     randomize_key = lambda: faker.lexify() if depth == 1 else _randomize_value()  # noqa
     randomize_value = (
         lambda: _randomize_kwargs(depth=depth + 1)
@@ -129,12 +135,12 @@ class Test__make_hash:
         assert hash1 != hash2
 
 
-def _func1(*args, **kwargs):
+def _func1(*args, **kwargs) -> _RandomValue:
     logging.info(f'test func1 called with args: {args} and kwargs: {kwargs}')
     return _randomize_value()
 
 
-def _func2(*args, **kwargs):
+def _func2(*args, **kwargs) -> _RandomValue:
     logging.info(f'test func2 called with args: {args} and kwargs: {kwargs}')
     return _randomize_value()
 
@@ -161,16 +167,18 @@ class Test__cache:
         with caplog.at_level(logging.INFO):
             result1 = _func1()
             result2 = _func1()
-            assert len(caplog.messages) == 2
-            assert result1 != result2
+
+        assert len(caplog.messages) == 2
+        assert result1 != result2
 
         caplog.clear()
 
         with caplog.at_level(logging.INFO):
             result3 = _cache.cache(_func1)
             result4 = _cache.cache(_func1)
-            assert len(caplog.messages) == 1
-            assert result3 == result4
+
+        assert len(caplog.messages) == 1
+        assert result3 == result4
 
     def test__cache__with_args(self, caplog):
         args1, kwargs1 = _randomize_args(), _randomize_kwargs()
