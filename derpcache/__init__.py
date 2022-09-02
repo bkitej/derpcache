@@ -8,16 +8,17 @@ from ._cache import get_by_hash
 """
 derpcache
 
-'Simple pickle-based caching utility.'
+'A simple pickle-based caching utility.'
 """
+
 
 __version__ = '1.0.0'
 __author__ = 'Ben Johnson'
 __credits__ = 'Silver Zinc Beetle'
 __all__ = [
-    cache,
-    cache_wrapper,
-    clear_cache,
-    get_index,
-    get_by_hash,
+    'cache',
+    'cache_wrapper',
+    'clear_cache',
+    'get_index',
+    'get_by_hash',
 ]

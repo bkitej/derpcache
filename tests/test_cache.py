@@ -11,12 +11,12 @@ import pytest
 faker = Faker()
 
 
-_RandomValue = Union[str, int, float]
+_RandomValueUnion = Union[str, int, float]
 _RandomDepthDict = dict
 
 
 @pytest.fixture(autouse=True)
-def _autoclear_cache() -> None:
+def _autoclear_cache():
     yield
     _cache.clear_cache()
 
@@ -26,11 +26,11 @@ def now() -> str:
     return datetime.utcnow().isoformat()
 
 
-def _randomize_value() -> _RandomValue:
-    return faker.random_element((faker.pyfloat, faker.pyint, faker.lexify))()
+def _randomize_value() -> _RandomValueUnion:
+    return faker.random_element((faker.lexify, faker.pyint, faker.pyfloat))()
 
 
-def _randomize_args() -> Tuple[_RandomValue]:
+def _randomize_args() -> Tuple[_RandomValueUnion, ...]:
     return tuple(_randomize_value() for _ in range(faker.pyint(2, 4)))
 
 
@@ -135,12 +135,12 @@ class Test__make_hash:
         assert hash1 != hash2
 
 
-def _func1(*args, **kwargs) -> _RandomValue:
+def _func1(*args, **kwargs) -> _RandomValueUnion:
     logging.info(f'test func1 called with args: {args} and kwargs: {kwargs}')
     return _randomize_value()
 
 
-def _func2(*args, **kwargs) -> _RandomValue:
+def _func2(*args, **kwargs) -> _RandomValueUnion:
     logging.info(f'test func2 called with args: {args} and kwargs: {kwargs}')
     return _randomize_value()
 

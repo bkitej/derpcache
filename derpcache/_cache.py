@@ -12,6 +12,9 @@ import pickle
 import shutil
 
 
+_AnnotationUnion = Union[None, str, dict]
+
+
 _CACHE_DIR = '.derpcache'
 _CACHE_INDEX_FILE = 'index.json'
 
@@ -143,12 +146,15 @@ def cache(
     return value
 
 
-def cache_wrapper(_annotation=None, _hash_annotation=False):
-    """TODO: support wrapping object methods."""
+def cache_wrapper(
+    _annotation: _AnnotationUnion = None,
+    _hash_annotation: bool = False,
+) -> Callable:
+    """TODO: support wrapping bound methods."""
 
-    def decorator(f):
+    def decorator(f) -> Callable:
         @functools.wraps(f)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args, **kwargs) -> Any:
             return cache(
                 f,
                 *args,
