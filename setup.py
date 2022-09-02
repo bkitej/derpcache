@@ -15,7 +15,7 @@ setup(
         'lint': [
             'black==22.8.0',
             'flake8<4',
-            'flakehell==0.9.0'
+            'flakehell==0.9.0',
         ],
         'test': [
             'faker==14.2.0',

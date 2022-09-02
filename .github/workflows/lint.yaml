@@ -1,0 +1,35 @@
+name: Linting
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+    steps:
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pip & black
+        run: |
+          pip install --upgrade pip
+          pip install ".[lint]"
+
+      - name: Run black diff
+        run: |
+          black . \
+          --diff \
+          --check
+
+      - name: Run flakehell
+        run: |
+          flakehell lint . \
+          --count \
+          --exit-zero
