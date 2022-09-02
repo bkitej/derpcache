@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from datetime import datetime
 from typing import Any
 from typing import Callable
 from typing import Union
+import datetime
 import functools
 import hashlib
 import json
@@ -46,6 +46,15 @@ def clear_cache() -> None:
         shutil.rmtree(_get_cache_path())
     except FileNotFoundError:
         pass
+
+
+def clear_expired(archive: bool = False) -> None:
+    logger.debug(f'cleared {0} expired entries')
+    pass
+
+
+def clear_archived() -> None:
+    pass
 
 
 def _order_dict_tree(d: dict) -> OrderedDict:
@@ -112,6 +121,8 @@ def cache(
     *args,
     _annotation: Union[None, str, dict] = None,
     _hash_annotation: bool = False,
+    _expires_after: Union[None, str, datetime.timedelta] = None,
+    _archive_on_clear: bool = False,
     **kwargs,
 ) -> Any:
     _init_cache()
@@ -119,6 +130,7 @@ def cache(
         # lazy, but keeps :meth:`_hash_args` dumb
         _describe_function(f),
         _annotation if _hash_annotation else None,
+        _expires_after,
         *args,
         **kwargs,
     )
@@ -128,7 +140,7 @@ def cache(
         logger.debug('cache hit')
     else:
         logger.debug('caching...')
-        called_at = datetime.utcnow().isoformat()
+        called_at = datetime.datetime.utcnow().isoformat()
         value = f(*args, **kwargs)
         _write_by_hash(hash, value)
         _update_index(
@@ -139,6 +151,7 @@ def cache(
                     'annotation_hashed': _hash_annotation,
                     'called_at': called_at,
                     'expires_after': None,  # TODO
+                    'archived': False,  # TODO
                 }
             }
         )
@@ -149,10 +162,12 @@ def cache(
 def cache_wrapper(
     _annotation: _AnnotationUnion = None,
     _hash_annotation: bool = False,
+    _expires_after: Union[None, str, datetime.timedelta] = None,
+    _archive_on_clear: bool = False,
 ) -> Callable:
     """TODO: support wrapping bound methods."""
 
-    def decorator(f) -> Callable:
+    def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
         def wrapped(*args, **kwargs) -> Any:
             return cache(
@@ -161,6 +176,8 @@ def cache_wrapper(
                 **kwargs,
                 _annotation=_annotation,
                 _hash_annotation=_hash_annotation,
+                _expires_after=_expires_after,
+                _archive_on_clear=_archive_on_clear,
             )
 
         return wrapped

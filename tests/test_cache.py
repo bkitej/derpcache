@@ -344,3 +344,16 @@ class Test__cache:
         assert entry2['function'] == _cache._describe_function(_func2)
         assert _cache.get_by_hash(hash2) == result2
         assert len(caplog.messages) == 2
+
+
+def test__cache_wrapper():
+    pass
+
+
+class Test__expiration:
+    def test__expires_after__clear_expired(self):
+        pass
+
+
+class Test__archival:
+    pass
