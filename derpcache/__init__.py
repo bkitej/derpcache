@@ -1,7 +1,8 @@
 from ._cache import cache
 from ._cache import cache_wrapper
+from ._cache import clear_cache
 from ._cache import get_index
-from ._cache import get_by_signature
+from ._cache import get_by_hash
 
 
 """
@@ -16,6 +17,7 @@ __credits__ = 'Silver Zinc Beetle'
 __all__ = [
     cache,
     cache_wrapper,
+    clear_cache,
     get_index,
-    get_by_signature,
+    get_by_hash,
 ]

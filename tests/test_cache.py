@@ -90,10 +90,10 @@ def test__order_dict_tree():
     assert actual_d == expected_d
 
 
-class Test__make_signature:
+class Test__make_hash:
     @pytest.mark.parametrize('args', [(), _randomize_args()])
     @pytest.mark.parametrize('kwargs', [{}, _randomize_kwargs()])
-    def test__make_signature__different_orders(self, args, kwargs):
+    def test__make_hash__different_orders(self, args, kwargs):
         def reverse_nested_dicts(d):
             new = {}
             for k, v in reversed(d.items()):
@@ -106,10 +106,10 @@ class Test__make_signature:
         args2 = reversed(args)
         kwargs2 = reverse_nested_dicts(kwargs)
 
-        signature1 = _cache._make_signature(*args1, **kwargs1)
-        signature2 = _cache._make_signature(*args2, **kwargs2)
+        hash1 = _cache._hash_args(*args1, **kwargs1)
+        hash2 = _cache._hash_args(*args2, **kwargs2)
 
-        assert signature1 == signature2
+        assert hash1 == hash2
 
     @pytest.mark.parametrize(
         'differing_args',
@@ -119,14 +119,14 @@ class Test__make_signature:
             ('args', 'kwargs'),
         ],
     )
-    def test__make_signature__different_args(self, differing_args):
+    def test__make_hash__different_args(self, differing_args):
         args1 = _randomize_args()
         args2 = _randomize_args() if 'args' in differing_args else args1
         kwargs1 = _randomize_kwargs()
         kwargs2 = _randomize_kwargs() if 'kwargs' in differing_args else kwargs1
-        signature1 = _cache._make_signature(*args1, **kwargs1)
-        signature2 = _cache._make_signature(*args2, **kwargs2)
-        assert signature1 != signature2
+        hash1 = _cache._hash_args(*args1, **kwargs1)
+        hash2 = _cache._hash_args(*args2, **kwargs2)
+        assert hash1 != hash2
 
 
 def _func1(*args, **kwargs):
@@ -286,7 +286,7 @@ class Test__cache:
         ],
         ids=lambda x: x['name'],
     )
-    def test__get_by_signature(self, caplog, freezer, scenario, now):
+    def test__get_by_hash(self, caplog, freezer, scenario, now):
         cache_kwargs = scenario['cache_kwargs']
         annotation1 = cache_kwargs.get('_annotation')
         hash_annotation = cache_kwargs.get('_hash_annotation', False)
@@ -299,12 +299,12 @@ class Test__cache:
 
         index1 = _cache.get_index()
         assert len(index1) == 1
-        ((signature1, entry1),) = index1.items()
+        ((hash1, entry1),) = index1.items()
         assert entry1['annotation'] == annotation1
         assert entry1['annotation_hashed'] == hash_annotation
         assert entry1['called_at'] == now
         assert entry1['function'] == _cache._describe_function(_func1)
-        assert _cache.get_by_signature(signature1) == result1
+        assert _cache.get_by_hash(hash1) == result1
         assert len(caplog.messages) == 1
 
         with caplog.at_level(logging.INFO):
@@ -313,11 +313,11 @@ class Test__cache:
         assert result2 != result1
         index2 = _cache.get_index()
         assert len(index2) == 2
-        signature2, entry2 = next((k, v) for k, v in index2.items() if k != signature1)
-        assert signature2 != signature1
+        hash2, entry2 = next((k, v) for k, v in index2.items() if k != hash1)
+        assert hash2 != hash1
         assert entry2['annotation'] is None
         assert entry2['annotation_hashed'] == False
         assert entry2['called_at'] == now
         assert entry2['function'] == _cache._describe_function(_func2)
-        assert _cache.get_by_signature(signature2) == result2
+        assert _cache.get_by_hash(hash2) == result2
         assert len(caplog.messages) == 2

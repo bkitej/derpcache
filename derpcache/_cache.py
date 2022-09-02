@@ -9,29 +9,35 @@ import pickle
 import shutil
 
 
-_CACHE_ROOT_DIR = os.environ.get('DERPCACHE_ROOT_DIR', '.')
 _CACHE_DIR = '.derpcache'
 _CACHE_INDEX_FILE = 'index.json'
-_CACHE_INDEX_PATH = os.path.join(_CACHE_ROOT_DIR, _CACHE_DIR, _CACHE_INDEX_FILE)
 
 
 logger = logging.getLogger(__name__)
 
 
-def _prepend(s):
-    return os.path.join(_CACHE_DIR, s)
+def _get_root_dir():
+    return os.environ.get('DERPCACHE_ROOT_DIR', '.')
+
+
+def _get_index_path():
+    return os.path.join(_get_root_dir(), _CACHE_DIR, _CACHE_INDEX_FILE)
+
+
+def _get_cache_path(s=''):
+    return os.path.join(_get_root_dir(), _CACHE_DIR, s)
 
 
 def _init_cache():
-    if _CACHE_DIR not in os.listdir(_CACHE_ROOT_DIR):
+    if _CACHE_DIR not in os.listdir(_get_root_dir()):
         os.mkdir(_CACHE_DIR)
-        with open(_CACHE_INDEX_PATH, 'w') as f:
+        with open(_get_index_path(), 'w') as f:
             json.dump({}, f)
 
 
 def clear_cache():
     try:
-        shutil.rmtree(_CACHE_DIR)
+        shutil.rmtree(_get_cache_path())
     except FileNotFoundError:
         pass
 
@@ -62,15 +68,15 @@ def _to_string(arg):
     return str(arg)
 
 
-def _make_signature(*args, **kwargs):
+def _hash_args(*args, **kwargs):
     args_str = str(sorted(_to_string(x) for x in args))
     kwargs_str = _to_string(kwargs)
-    string_signature = args_str + kwargs_str
-    return hashlib.sha256(string_signature.encode()).hexdigest()
+    string_hash = args_str + kwargs_str
+    return hashlib.sha256(string_hash.encode()).hexdigest()
 
 
 def get_index():
-    with open(_CACHE_INDEX_PATH, 'r') as f:
+    with open(_get_index_path(), 'r') as f:
         index = json.load(f)
     return index
 
@@ -78,42 +84,41 @@ def get_index():
 def _update_index(d):
     index = get_index()
     index.update(d)
-    with open(_CACHE_INDEX_PATH, 'w') as f:
+    with open(_get_index_path(), 'w') as f:
         json.dump(index, f)
 
 
-def get_by_signature(signature):
-    with open(_prepend(signature), 'rb') as f:
+def get_by_hash(hash):
+    with open(_get_cache_path(hash), 'rb') as f:
         value = pickle.load(f)
     return value
 
 
-def _write_by_signature(signature, value):
-    with open(_prepend(signature), 'wb') as f:
+def _write_by_hash(hash, value):
+    with open(_get_cache_path(hash), 'wb') as f:
         pickle.dump(value, f)
 
 
 def cache(f, *args, _annotation=None, _hash_annotation=False, **kwargs):
     _init_cache()
-    signature = _make_signature(
-        # lazy, but keeps :meth:`_make_signature` dumb
+    hash = _hash_args(
         _describe_function(f),
-        _annotation if _hash_annotation else None,
+        _annotation if _hash_annotation else None,  # lazy, but keeps _make_hash() dumb
         *args,
         **kwargs,
     )
     index = get_index()
-    if signature in index:
-        value = get_by_signature(signature)
+    if hash in index:
+        value = get_by_hash(hash)
         logger.debug('cache hit')
     else:
         logger.debug('caching...')
         called_at = datetime.utcnow().isoformat()
         value = f(*args, **kwargs)
-        _write_by_signature(signature, value)
+        _write_by_hash(hash, value)
         _update_index(
             {
-                signature: {
+                hash: {
                     'function': _describe_function(f),
                     'annotation': _annotation,
                     'annotation_hashed': _hash_annotation,
