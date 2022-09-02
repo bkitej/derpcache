@@ -9,8 +9,17 @@ setup(
     author_email='bkitej@gmail.com',
     install_requires=['pickle5'],
     extras_require={
-        'dev': ['commitizen'],
-        'lint': ['black', 'flake8'],
-        'test': ['faker', 'pytest', 'pytest-freezegun'],
+        'dev': [
+            'commitizen==2.32.2',
+        ],
+        'lint': [
+            'black==22.8.0',
+            'flake8<4',
+        ],
+        'test': [
+            'faker==14.2.0',
+            'pytest==7.1.2',
+            'pytest-freezegun==0.4.2',
+        ],
     },
 )
