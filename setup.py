@@ -10,7 +10,7 @@ setup(
     install_requires=['pickle5'],
     extras_require={
         'dev': ['commitizen'],
-        'linting': ['black', 'flake8'],
+        'lint': ['black', 'flake8'],
         'test': ['faker', 'pytest', 'pytest-freezegun'],
     },
 )

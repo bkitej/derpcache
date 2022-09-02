@@ -103,7 +103,8 @@ def cache(f, *args, _annotation=None, _hash_annotation=False, **kwargs):
     _init_cache()
     hash = _hash_args(
         _describe_function(f),
-        _annotation if _hash_annotation else None,  # lazy, but keeps _make_hash() dumb
+        # lazy, but keeps :meth:`_hash_args` dumb
+        _annotation if _hash_annotation else None,
         *args,
         **kwargs,
     )

@@ -29,7 +29,7 @@ def _randomize_args():
 
 
 def _randomize_kwargs(depth=1):
-    randomize_key = lambda: faker.lexify() if depth == 1 else _randomize_value()
+    randomize_key = lambda: faker.lexify() if depth == 1 else _randomize_value()  # noqa
     randomize_value = (
         lambda: _randomize_kwargs(depth=depth + 1)
         if faker.pybool() and not depth > 3
@@ -121,7 +121,7 @@ class Test__make_hash:
     )
     def test__make_hash__different_args(self, differing_args):
         args1 = _randomize_args()
-        args2 = _randomize_args() if 'args' in differing_args else args1
+        args2 = _randomize_args() if 'args' in differing_args else (args1)
         kwargs1 = _randomize_kwargs()
         kwargs2 = _randomize_kwargs() if 'kwargs' in differing_args else kwargs1
         hash1 = _cache._hash_args(*args1, **kwargs1)
@@ -152,8 +152,8 @@ class Test__cache:
 
         assert len(index2) == 1
         ((_, entry),) = index2.items()
-        assert entry['annotation'] == None
-        assert entry['annotation_hashed'] == False
+        assert entry['annotation'] is None
+        assert entry['annotation_hashed'] is False
         assert entry['called_at'] == now
         assert entry['function'] == _cache._describe_function(_func1)
 
@@ -210,13 +210,25 @@ class Test__cache:
 
         with caplog.at_level(logging.INFO):
             result1_ann1 = _cache.cache(
-                _func1, *args, **kwargs, _annotation=annotation1, _hash_annotation=True
+                _func1,
+                *args,
+                **kwargs,
+                _annotation=annotation1,
+                _hash_annotation=True,
             )
             result2_ann1 = _cache.cache(
-                _func1, *args, **kwargs, _annotation=annotation1, _hash_annotation=True
+                _func1,
+                *args,
+                **kwargs,
+                _annotation=annotation1,
+                _hash_annotation=True,
             )
             result3_ann2 = _cache.cache(
-                _func1, *args, **kwargs, _annotation=annotation2, _hash_annotation=True
+                _func1,
+                *args,
+                **kwargs,
+                _annotation=annotation2,
+                _hash_annotation=True,
             )
 
         assert result1_ann1 == result2_ann1
@@ -225,9 +237,9 @@ class Test__cache:
         assert len(index) == 2
         entry_ann1, entry_ann2 = sorted(index.values(), key=lambda x: x['called_at'])
         assert entry_ann1['annotation'] == annotation1
-        assert entry_ann1['annotation_hashed'] == True
+        assert entry_ann1['annotation_hashed'] is True
         assert entry_ann2['annotation'] == annotation2
-        assert entry_ann2['annotation_hashed'] == True
+        assert entry_ann2['annotation_hashed'] is True
         assert len(caplog.messages) == 2
 
     def test__cache__clear_cache(self, caplog):
@@ -294,7 +306,10 @@ class Test__cache:
 
         with caplog.at_level(logging.INFO):
             result1 = _cache.cache(
-                _func1, *_randomize_args(), **_randomize_kwargs(), **cache_kwargs
+                _func1,
+                *_randomize_args(),
+                **_randomize_kwargs(),
+                **cache_kwargs,
             )
 
         index1 = _cache.get_index()
@@ -316,7 +331,7 @@ class Test__cache:
         hash2, entry2 = next((k, v) for k, v in index2.items() if k != hash1)
         assert hash2 != hash1
         assert entry2['annotation'] is None
-        assert entry2['annotation_hashed'] == False
+        assert entry2['annotation_hashed'] is False
         assert entry2['called_at'] == now
         assert entry2['function'] == _cache._describe_function(_func2)
         assert _cache.get_by_hash(hash2) == result2
