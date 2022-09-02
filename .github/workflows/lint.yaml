@@ -36,5 +36,6 @@ jobs:
 
       - name: Run mypy
         run: |
+          pip install ".[test]"  # for typing stubs
           mypy .
           
