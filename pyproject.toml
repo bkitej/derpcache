@@ -7,3 +7,10 @@ tag_format = "$version"
 [tool.black]
 line-length = 88
 skip-string-normalization = true
+
+[tool.flakehell]
+extended_default_ignore=[]  # https://github.com/flakehell/flakehell/issues/10#issuecomment-822720074
+exclude = ["venv"]
+format = "grouped"
+max-line-length = 88
+show_source = true
