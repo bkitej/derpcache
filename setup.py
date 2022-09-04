@@ -19,7 +19,7 @@ setup(
             'flake8<4',  # flakehell incompatible with >=4
             'flakehell==0.9.0',
             'mypy==0.971',
-            '           types-setuptools==65.3.0',
+            'types-setuptools==65.3.0',
         ],
         'test': [
             'faker==14.2.0',
