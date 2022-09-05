@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -17,7 +16,7 @@ import shutil
 
 # TODO: use typing.Mapping with stricter structure
 _EntryDict = Dict
-_IndexDict = Dict
+_IndexDict = Dict[str, _EntryDict]
 
 
 _CACHE_DIR = '.derpcache'
@@ -31,35 +30,20 @@ def _get_root_dir() -> str:
     return os.environ.get('DERPCACHE_ROOT_DIR', '.')
 
 
-def _get_index_path() -> str:
-    return os.path.join(_get_root_dir(), _CACHE_DIR, _CACHE_INDEX_FILE)
-
-
 def _get_cache_path(s: str = '') -> str:
     return os.path.join(_get_root_dir(), _CACHE_DIR, s)
 
 
-def _init_cache() -> None:
-    if _CACHE_DIR not in os.listdir(_get_root_dir()):
-        os.mkdir(_CACHE_DIR)
-        with open(_get_index_path(), 'w') as f:
-            json.dump({}, f)
+def _get_index_path() -> str:
+    return _get_cache_path(_CACHE_INDEX_FILE)
 
 
-def clear_cache() -> None:
-    try:
-        shutil.rmtree(_get_cache_path())
-    except FileNotFoundError:
-        pass
+def _order_dict_tree(d: dict) -> dict:
+    """Sort nested dict by keys so string-casting it will produce a deterministic
+    hash."""
 
-
-def _order_dict_tree(d: dict) -> OrderedDict:
-    """Load any (nested) :obj:`dict`s into key-alphabetized
-    :obj:`collections.OrderedDict`s, so kwargs passed in any order are hashed the same.
-    """
-
-    new = OrderedDict()
-    for k, v in sorted(d.items(), key=str):  # TODO: sort _after_
+    new = {}
+    for k, v in sorted(d.items(), key=str):
         if isinstance(v, dict):
             v = _order_dict_tree(v)
         new[k] = v
@@ -99,8 +83,8 @@ def _write_index(index: _IndexDict) -> None:
         json.dump(index, f)
 
 
-def _add_index_entry(index: _IndexDict, entry: _EntryDict) -> None:
-    index.update(entry)
+def _add_index_entry(index: _IndexDict, hash: str, entry: _EntryDict) -> None:
+    index[hash] = entry
     _write_index(index)
 
 
@@ -161,6 +145,19 @@ def get_index(clear_expired: bool = False) -> _IndexDict:
     return index
 
 
+def _init_cache() -> None:
+    if _CACHE_DIR not in os.listdir(_get_root_dir()):
+        os.mkdir(_CACHE_DIR)
+        _write_index({})
+
+
+def clear_cache() -> None:
+    try:
+        shutil.rmtree(_get_cache_path())
+    except FileNotFoundError:
+        pass
+
+
 def _expires_after_to_float(expires_after: Union[float, datetime.timedelta]) -> float:
     if isinstance(expires_after, datetime.timedelta):
         expires_after = expires_after.total_seconds()
@@ -216,11 +213,14 @@ def cache(
         _write_object_by_hash(hash, value)
         _add_index_entry(
             index,
-            entry={
-                hash: _format_entry(
-                    f, called_at, _expires_after, _annotation, _hash_annotation
-                ),
-            },
+            hash,
+            entry=_format_entry(
+                f,
+                called_at,
+                _expires_after,
+                _annotation,
+                _hash_annotation,
+            ),
         )
         logger.debug('caching successful.')
     return value

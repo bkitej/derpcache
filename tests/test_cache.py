@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from derpcache import _cache
 from faker import Faker
 from typing import Tuple
@@ -36,63 +35,26 @@ def _randomize_args() -> Tuple[_RandomValueUnion, ...]:
 
 
 def _randomize_kwargs(depth: int = 1) -> _RandomDepthDict:
-    randomize_key = lambda: faker.lexify() if depth == 1 else _randomize_value()  # noqa
-    randomize_value = (
-        lambda: _randomize_kwargs(depth=depth + 1)
-        if faker.pybool() and not depth > 3
-        else _randomize_value()
-    )
-    return {randomize_key(): randomize_value() for _ in range(faker.pyint(1, 3))}
+    if depth == 1:
+        k = faker.lexify()
+    else:
+        k = _randomize_value()
+    if faker.pybool and not depth > 3:
+        v = _randomize_kwargs(depth=depth + 1)
+    else:
+        v = _randomize_value()
+    return {k: v for _ in range(faker.pyint(1, 3))}
 
 
 def test__order_dict_tree():
     d = {
-        'b': {
-            'b': 1,
-            'c': 2,
-            'a': 3,
-        },
-        'a': {
-            'b': 1,
-            'a': 2,
-            'c': {
-                'b': 1,
-                'a': 2,
-            },
-        },
+        'b': {'b': 1, 'c': 2, 'a': 3},
+        'a': {'b': 1, 'a': 2, 'c': {'b': 2, 'a': 1}},
     }
-    expected_d = OrderedDict(
-        [
-            (
-                'a',
-                OrderedDict(
-                    [
-                        ('a', 2),
-                        ('b', 1),
-                        (
-                            'c',
-                            OrderedDict(
-                                [
-                                    ('a', 2),
-                                    ('b', 1),
-                                ]
-                            ),
-                        ),
-                    ]
-                ),
-            ),
-            (
-                'b',
-                OrderedDict(
-                    [
-                        ('a', 3),
-                        ('b', 1),
-                        ('c', 2),
-                    ]
-                ),
-            ),
-        ]
-    )
+    expected_d = {
+        'a': {'a': 2, 'b': 1, 'c': {'a': 1, 'b': 2}},
+        'b': {'a': 3, 'b': 1, 'c': 2},
+    }
     actual_d = _cache._order_dict_tree(d)
     assert actual_d == expected_d
 
