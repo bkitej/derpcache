@@ -1,5 +1,6 @@
 from derpcache import _cache
 from faker import Faker
+from typing import Any
 from typing import Dict
 from typing import Tuple
 from typing import Union
@@ -49,7 +50,7 @@ def _randomize_kwargs(depth: int = 1) -> _RandomDepthDict:
     return {k: v for _ in range(faker.pyint(1, 3))}
 
 
-def test__order_dict_tree():
+def test__sort_nested_dicts():
     from collections import OrderedDict  # order matters for comparison
 
     d = OrderedDict(
@@ -96,7 +97,7 @@ def test__order_dict_tree():
             ),
         }
     )
-    actual_d = _cache._order_dict_tree(d)
+    actual_d = _cache._sort_nested_dicts(d)
     assert actual_d == expected_d
 
 
@@ -104,17 +105,20 @@ class Test__make_hash:
     @pytest.mark.parametrize('args', [(), _randomize_args()])
     @pytest.mark.parametrize('kwargs', [{}, _randomize_kwargs()])
     def test__make_hash__different_orders(self, args, kwargs):
-        def reverse_nested_dicts(d):
-            new = {}
-            for k, v in reversed(d.items()):
-                if isinstance(v, dict):
-                    v = reverse_nested_dicts(v)
-                new[k] = v
-            return new
+        def _reverse_nested_dicts(
+            value: Union[dict, list, Any]
+        ) -> Union[dict, list, Any]:
+            if isinstance(value, dict):
+                value = {
+                    k: _reverse_nested_dicts(v) for k, v in reversed(value.items())
+                }
+            elif _cache._is_non_str_iterable(value):
+                value = [_reverse_nested_dicts(x) for x in value]
+            return value
 
         args1, kwargs1 = args, kwargs
         args2 = reversed(args)
-        kwargs2 = reverse_nested_dicts(kwargs)
+        kwargs2 = _reverse_nested_dicts(kwargs)
 
         hash1 = _cache._hash_args(*args1, **kwargs1)
         hash2 = _cache._hash_args(*args2, **kwargs2)

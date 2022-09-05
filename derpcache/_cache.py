@@ -42,19 +42,16 @@ def _is_non_str_iterable(x: Any) -> bool:
     return hasattr(x, '__iter__') and not isinstance(x, str)
 
 
-def _order_dict_tree(d: dict) -> dict:
+def _sort_nested_dicts(value: Union[dict, list, Any]) -> Union[dict, list, Any]:
     """Sort nested dicts by keys so casting it will produce a deterministic string.
 
     Warning: Thar be edge cases."""
 
-    new = {}
-    for k, v in sorted(d.items(), key=str):
-        if isinstance(v, dict):
-            v = _order_dict_tree(v)
-        elif _is_non_str_iterable(v):
-            v = [_order_dict_tree(x) if isinstance(x, dict) else x for x in v]
-        new[k] = v
-    return new
+    if isinstance(value, dict):
+        value = {k: _sort_nested_dicts(v) for k, v in sorted(value.items(), key=str)}
+    elif _is_non_str_iterable(value):
+        value = [_sort_nested_dicts(x) for x in value]
+    return value
 
 
 def _describe_callable(f: Callable) -> str:
@@ -67,10 +64,7 @@ def _describe_callable(f: Callable) -> str:
 
 
 def _to_string(arg: Any) -> str:
-    if isinstance(arg, dict):
-        arg = _order_dict_tree(arg)
-    elif _is_non_str_iterable(arg):
-        arg = [_order_dict_tree(x) if isinstance(x, dict) else x for x in arg]
+    arg = _sort_nested_dicts(arg)
     return str(arg)
 
 
