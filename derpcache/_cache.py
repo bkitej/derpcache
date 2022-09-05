@@ -38,21 +38,28 @@ def _get_index_path() -> str:
     return _get_cache_path(_CACHE_INDEX_FILE)
 
 
+def _is_non_str_iterable(x: Any) -> bool:
+    return hasattr(x, '__iter__') and not isinstance(x, str)
+
+
 def _order_dict_tree(d: dict) -> dict:
-    """Sort nested dict by keys so string-casting it will produce a deterministic
-    hash."""
+    """Sort nested dicts by keys so casting it will produce a deterministic string.
+
+    Warning: Thar be edge cases."""
 
     new = {}
     for k, v in sorted(d.items(), key=str):
         if isinstance(v, dict):
             v = _order_dict_tree(v)
+        elif _is_non_str_iterable(v):
+            v = [_order_dict_tree(x) if isinstance(x, dict) else x for x in v]
         new[k] = v
     return new
 
 
 def _describe_callable(f: Callable) -> str:
-    """Some callables are missing a :attr:`__qualname__`, so it helps to at least have
-    some info about what they were."""
+    """Note: Some callables are missing a :attr:`__qualname__`, so including `type()`
+    provides at least some information."""
 
     mod = f.__module__
     name = getattr(f, '__qualname__', str(type(f)))
@@ -62,6 +69,8 @@ def _describe_callable(f: Callable) -> str:
 def _to_string(arg: Any) -> str:
     if isinstance(arg, dict):
         arg = _order_dict_tree(arg)
+    elif _is_non_str_iterable(arg):
+        arg = [_order_dict_tree(x) if isinstance(x, dict) else x for x in arg]
     return str(arg)
 
 
@@ -137,7 +146,7 @@ def _sort_index(index: _IndexDict) -> _IndexDict:
     return index
 
 
-def get_index(clear_expired: bool = False) -> _IndexDict:
+def get_index(clear_expired: bool = True) -> _IndexDict:
     index = _read_index()
     if clear_expired:
         index = _remove_expired_items(index)

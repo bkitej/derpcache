@@ -1,5 +1,6 @@
 from derpcache import _cache
 from faker import Faker
+from typing import Dict
 from typing import Tuple
 from typing import Union
 import datetime
@@ -11,11 +12,11 @@ faker = Faker()
 
 
 _RandomValueUnion = Union[str, int, float]
-_RandomDepthDict = dict
+_RandomDepthDict = Dict
 
 
 @pytest.fixture(autouse=True)
-def _autoclear_cache():
+def _auto_clear_cache():
     yield
     _cache.clear_cache()
 
@@ -35,26 +36,66 @@ def _randomize_args() -> Tuple[_RandomValueUnion, ...]:
 
 
 def _randomize_kwargs(depth: int = 1) -> _RandomDepthDict:
+    max_nested_dict_depth = 3
     if depth == 1:
         k = faker.lexify()
     else:
         k = _randomize_value()
-    if faker.pybool and not depth > 3:
+    if faker.pybool() and not depth > max_nested_dict_depth:
         v = _randomize_kwargs(depth=depth + 1)
     else:
-        v = _randomize_value()
+        # mypy has trouble with random recursive dict creation
+        v = _randomize_value()  # type: ignore
     return {k: v for _ in range(faker.pyint(1, 3))}
 
 
 def test__order_dict_tree():
-    d = {
-        'b': {'b': 1, 'c': 2, 'a': 3},
-        'a': {'b': 1, 'a': 2, 'c': {'b': 2, 'a': 1}},
-    }
-    expected_d = {
-        'a': {'a': 2, 'b': 1, 'c': {'a': 1, 'b': 2}},
-        'b': {'a': 3, 'b': 1, 'c': 2},
-    }
+    from collections import OrderedDict  # order matters for comparison
+
+    d = OrderedDict(
+        {
+            'b': OrderedDict(
+                {
+                    'e': 1,
+                    'f': [1, 2, [], {}],
+                    'd': [
+                        OrderedDict({3: 'i', 1: 'g', 2: 'h'}),
+                        1,
+                        OrderedDict({'k': 2, 'j': [1, 2]}),
+                    ],
+                }
+            ),
+            'a': OrderedDict(
+                {
+                    'm': [1, OrderedDict({'p': [1, 2], 'o': {}})],
+                    'l': 1,
+                    'n': OrderedDict({'r': 2, 'q': 1}),
+                }
+            ),
+        }
+    )
+    expected_d = OrderedDict(
+        {
+            'a': OrderedDict(
+                {
+                    'l': 1,
+                    'm': [1, OrderedDict({'o': {}, 'p': [1, 2]})],
+                    'n': OrderedDict({'q': 1, 'r': 2}),
+                }
+            ),
+            'b': OrderedDict(
+                {
+                    'd': [
+                        OrderedDict({1: 'g', 2: 'h', 3: 'i'}),
+                        1,
+                        OrderedDict({'j': [1, 2], 'k': 2}),
+                    ],
+                    'e': 1,
+                    'f': [1, 2, [], {}],
+                }
+            ),
+        }
+    )
     actual_d = _cache._order_dict_tree(d)
     assert actual_d == expected_d
 
@@ -328,7 +369,7 @@ def test__expires_after__clear_expired(caplog, freezer, expires_after_type):
     result = _cache.cache(_func1, *args, **kwargs, _expires_after=None)
     result_expires = _cache.cache(_func1, *args, **kwargs, _expires_after=expires_after)
 
-    index1 = _cache.get_index()
+    index1 = _cache.get_index(clear_expired=False)
     assert len(index1) == 2
     assert len(caplog.messages) == 2
     (
