@@ -84,9 +84,14 @@ def _write_index(index: _IndexDict) -> None:
         json.dump(index, f)
 
 
-def _add_index_entry(index: _IndexDict, hash: str, entry: _EntryDict) -> None:
+def _write_entry_to_index(
+    index: _IndexDict,
+    hash: str,
+    entry: _EntryDict,
+) -> _IndexDict:
     index[hash] = entry
     _write_index(index)
+    return index
 
 
 def get_by_hash(hash: str) -> Any:
@@ -212,7 +217,7 @@ def cache(
         called_at = datetime.datetime.utcnow().isoformat()
         value = f(*args, **kwargs)
         _write_object_by_hash(hash, value)
-        _add_index_entry(
+        _write_entry_to_index(
             index,
             hash,
             entry=_format_entry(
@@ -232,7 +237,7 @@ def cache_wrapper(
     _annotation: Optional[str] = None,
     _hash_annotation: bool = False,
 ) -> Callable:
-    """TODO: support wrapping bound methods."""
+    # TODO: support wrapping bound methods.
 
     def decorator(f: Callable) -> Callable:
         @functools.wraps(f)
