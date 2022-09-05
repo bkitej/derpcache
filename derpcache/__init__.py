@@ -1,9 +1,12 @@
 from ._cache import cache
 from ._cache import cache_wrapper
 from ._cache import clear_cache
-from ._cache import clear_expired
-from ._cache import get_index
 from ._cache import get_by_hash
+from ._cache import get_index as _get_index
+
+
+def get_index(clear_expired=True):
+    return _get_index(clear_expired=clear_expired)
 
 
 """
@@ -20,7 +23,6 @@ __all__ = [
     'cache',
     'cache_wrapper',
     'clear_cache',
-    'clear_expired',
     'get_index',
     'get_by_hash',
 ]

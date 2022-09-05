@@ -8,6 +8,9 @@ import logging
 import pytest
 
 
+from derpcache._cache import *
+
+
 faker = Faker()
 
 
@@ -160,10 +163,11 @@ class Test__cache:
 
         assert len(index2) == 1
         ((_, entry),) = index2.items()
-        assert entry['annotation'] is None
-        assert entry['annotation_hashed'] is False
-        assert entry['called_at'] == dt.isoformat()
-        assert entry['function'] == _cache._describe_function(_func1)
+        expected_entry = {
+            'callable': _cache._describe_callable(_func1),
+            'called_at': dt.isoformat(),
+        }
+        assert entry == expected_entry
 
     def test__cache__hit(self, caplog):
         with caplog.at_level(logging.INFO):
@@ -206,7 +210,7 @@ class Test__cache:
         assert result1 != result3
         index = _cache.get_index()
         assert len(index) == 2
-        (index_entry, _) = sorted(index.values(), key=lambda x: x['called_at'])
+        (index_entry, _) = index.values()
         assert index_entry['annotation'] == annotation
         assert len(caplog.messages) == 2
 
@@ -241,11 +245,11 @@ class Test__cache:
         assert result3_ann2 != result1_ann1
         index = _cache.get_index()
         assert len(index) == 2
-        entry_ann1, entry_ann2 = sorted(index.values(), key=lambda x: x['called_at'])
+        entry_ann1, entry_ann2 = index.values()
         assert entry_ann1['annotation'] == annotation1
-        assert entry_ann1['annotation_hashed'] is True
+        assert entry_ann1['hash_annotation'] is True
         assert entry_ann2['annotation'] == annotation2
-        assert entry_ann2['annotation_hashed'] is True
+        assert entry_ann2['hash_annotation'] is True
         assert len(caplog.messages) == 2
 
     def test__cache__clear_cache(self, caplog):
@@ -318,10 +322,18 @@ class Test__cache:
         index1 = _cache.get_index()
         assert len(index1) == 1
         ((hash1, entry1),) = index1.items()
-        assert entry1['annotation'] == annotation1
-        assert entry1['annotation_hashed'] == hash_annotation
-        assert entry1['called_at'] == dt.isoformat()
-        assert entry1['function'] == _cache._describe_function(_func1)
+        expected_entry1 = {
+            'callable': _cache._describe_callable(_func1),
+            'called_at': dt.isoformat(),
+        }
+        if annotation1:
+            expected_entry1.update(
+                {
+                    'annotation': annotation1,
+                    'hash_annotation': hash_annotation
+                }
+            )
+        assert entry1 == expected_entry1
         assert _cache.get_by_hash(hash1) == result1
         assert len(caplog.messages) == 1
 
@@ -332,63 +344,61 @@ class Test__cache:
         assert result2 != result1
         index2 = _cache.get_index()
         assert len(index2) == 2
-        hash2, entry2 = next((k, v) for k, v in index2.items() if k != hash1)
+        (_, _), (hash2, entry2) = index2.items()
         assert hash2 != hash1
-        assert entry2['annotation'] is None
-        assert entry2['annotation_hashed'] is False
-        assert entry2['called_at'] == later.isoformat()
-        assert entry2['function'] == _cache._describe_function(_func2)
+        expected_entry2 = {
+            'callable': _cache._describe_callable(_func2),
+            'called_at': later.isoformat()
+        }
+        assert entry2 == expected_entry2
         assert _cache.get_by_hash(hash2) == result2
         assert len(caplog.messages) == 2
 
 
-def test__cache_wrapper():
-    pass
-
-
-@pytest.mark.xfail
-class Test__expiration:
-    @pytest.mark.parametrize(
-        'expires_after_type', (
-            int,
-            datetime.timedelta
-        )
+@pytest.mark.parametrize('expires_after_type', (int, datetime.timedelta))
+def test__expires_after__clear_expired(caplog, freezer, expires_after_type):
+    dt_called = faker.date_time()
+    freezer.move_to(dt_called)
+    args, kwargs = _randomize_args(), _randomize_kwargs()
+    expires_after_int = faker.pyint(1, 3600)
+    expires_after_delta = datetime.timedelta(seconds=expires_after_int)
+    expires_after = (
+        expires_after_int if expires_after_type == int else expires_after_delta
     )
-    def test__expires_after__clear_expired(self, caplog, freezer, expires_after_type):
-        dt_called = faker.date_time()
-        freezer.move_to(dt_called)
-        args, kwargs = _randomize_args(), _randomize_kwargs()
-        expires_after_int = faker.pyint(1, 3600)
-        expires_after_delta = datetime.timedelta(seconds=expires_after_int)
-        expires_after = (
-            expires_after_int
-            if expires_after_type == int
-            else expires_after_delta
-        )
 
-        result1 = _cache.cache(_func1, *args, **kwargs, _expires_after=None)
-        result2 = _cache.cache(_func1, *args, **kwargs, _expires_after=expires_after)
+    result = _cache.cache(_func1, *args, **kwargs, _expires_after=None)
+    result_expires = _cache.cache(_func1, *args, **kwargs, _expires_after=expires_after)
 
-        index1 = _cache.get_index()
-        assert len(index1) == 2
-        assert len(caplog.messages) == 2
+    index1 = _cache.get_index()
+    assert len(index1) == 2
+    assert len(caplog.messages) == 2
+    (
+        (hash, entry),
+        (hash_expires, entry_expires),
+    ) = index1.items()
+    expected_entry = {
+        'callable': _cache._describe_callable(_func1),
+        'called_at': dt_called.isoformat(),
+    }
+    assert entry == expected_entry
+    assert result == _cache.get_by_hash(hash)
+    expected_entry_expires = {
+        'callable': _cache._describe_callable(_func1),
+        'called_at': dt_called.isoformat(),
+        'expires_after': expires_after_int,
+    }
+    assert entry_expires == expected_entry_expires
+    assert result_expires == _cache.get_by_hash(hash_expires)
 
-        index1 = _cache.get_index()
-        (hash_valid, entry_valid), (hash_expired, entry_expired), = index1.items()
-        assert entry_valid['called_at'] == dt_called.isoformat()
-        assert entry_valid['expires_after'] is None
-        assert entry_expired['called_at'] == dt_called.isoformat()
-        assert entry_expired['expires_after'] == expires_after_int
+    dt_expired = dt_called + expires_after_delta
+    freezer.move_to(dt_expired)
+    index2 = _cache.get_index(clear_expired=True)
 
-        dt_expired = dt_called + expires_after_delta + datetime.timedelta.resolution
-        freezer.move_to(dt_expired)
-
-        index2 = _cache.get_index()
-        assert len(index2) == 1
-        assert len(caplog.messages) == 2
-        assert hash_expired not in index2
-        assert index2 == {hash_valid: entry_valid}
+    assert len(index2) == 1
+    assert len(caplog.messages) == 2
+    assert index2 == {hash: entry}
+    assert hash_expires not in index2
 
 
-class Test__archival:
+def test__cache_wrapper():
     pass
