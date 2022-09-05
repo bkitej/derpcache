@@ -17,8 +17,7 @@ setup(
         ],
         'lint': [
             'black',
-            'flake8<4',  # flakehell incompatible with >=4
-            'flakehell',
+            'flakeheaven',
             'mypy',
             'types-setuptools',
         ],

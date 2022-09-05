@@ -7,15 +7,9 @@ version = "0.0.1"
 line-length = 88
 skip-string-normalization = true
 
-[tool.flakehell]
+[tool.flakeheaven]
 exclude = ["venv", "README.md"]
-extended_default_ignore=[]  # https://github.com/flakehell/flakehell/issues/10#issuecomment-822720074
-format = "colored"
-max_line_length = 88
-show_source = true
-
-[tool.flakehell.plugins]
-pycodestyle = ["+*"]
+format = "grouped"
 
 [tool.mypy]
 exclude = ["build", "venv"]

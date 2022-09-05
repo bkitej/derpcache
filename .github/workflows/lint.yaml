@@ -28,11 +28,10 @@ jobs:
           --diff \
           --check
 
-      - name: Run flakehell
+      - name: Run flakeheaven
         run: |
-          flakehell lint . \
-          --count \
-          --exit-zero
+          flakeheaven lint . \
+          --count
 
       - name: Run mypy
         run: |
