@@ -2,6 +2,8 @@ from collections import OrderedDict
 from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Union
 import datetime
 import functools
@@ -13,9 +15,9 @@ import pickle
 import shutil
 
 
-_AnnotationUnion = Union[None, str, dict]
-_EntryDict = Dict[str, Union[str, int, bool]]
-_IndexDict = Dict[str, _EntryDict]
+# TODO: use typing.Mapping with stricter structure
+_EntryDict = Dict
+_IndexDict = Dict
 
 
 _CACHE_DIR = '.derpcache'
@@ -97,8 +99,8 @@ def _write_index(index: _IndexDict) -> None:
         json.dump(index, f)
 
 
-def _add_index_entry(index: _IndexDict, hash: str, entry: _EntryDict) -> None:
-    index[hash] = entry
+def _add_index_entry(index: _IndexDict, entry: _EntryDict) -> None:
+    index.update(entry)
     _write_index(index)
 
 
@@ -113,12 +115,12 @@ def _write_object_by_hash(hash: str, value: Any) -> None:
         pickle.dump(value, f)
 
 
-def _remove_objects(to_remove: list[str]) -> None:
+def _remove_objects(to_remove: List[str]) -> None:
     for hash in to_remove:
         os.remove(_get_cache_path(hash))
 
 
-def _remove_entries(index, to_remove: list[str]) -> None:
+def _remove_entries(index: _IndexDict, to_remove: List[str]) -> _IndexDict:
     index = {k: v for k, v in index.items() if k not in to_remove}
     _write_index(index)
     return index
@@ -159,7 +161,7 @@ def get_index(clear_expired: bool = False) -> _IndexDict:
     return index
 
 
-def _expires_after_to_int(expires_after: Union[int, datetime.timedelta]) -> int:
+def _expires_after_to_float(expires_after: Union[float, datetime.timedelta]) -> float:
     if isinstance(expires_after, datetime.timedelta):
         expires_after = expires_after.total_seconds()
     return expires_after
@@ -168,8 +170,8 @@ def _expires_after_to_int(expires_after: Union[int, datetime.timedelta]) -> int:
 def _format_entry(
     f: Callable,
     called_at: str,
-    expires_after: Union[int, datetime.timedelta],
-    annotation: str,
+    expires_after: Optional[Union[float, datetime.timedelta]],
+    annotation: Optional[str],
     hash_annotation: bool,
 ) -> _EntryDict:
     entry = {
@@ -177,18 +179,20 @@ def _format_entry(
         'called_at': called_at,
     }
     if expires_after:
-        entry['expires_after'] = _expires_after_to_int(expires_after)
+        # mypy thinks `expires_after` is a string here
+        entry['expires_after'] = _expires_after_to_float(expires_after)  # type: ignore
     if annotation:
         entry['annotation'] = annotation
-        entry['hash_annotation'] = hash_annotation
+        # mypy thinks `hash_annotation` is a string here
+        entry['hash_annotation'] = hash_annotation  # type: ignore
     return entry
 
 
 def cache(
     f: Callable,
     *args,
-    _expires_after: Union[int, datetime.timedelta] = None,
-    _annotation: str = None,
+    _expires_after: Optional[Union[float, datetime.timedelta]] = None,
+    _annotation: Optional[str] = None,
     _hash_annotation: bool = False,
     **kwargs,
 ) -> Any:
@@ -212,16 +216,19 @@ def cache(
         _write_object_by_hash(hash, value)
         _add_index_entry(
             index,
-            hash,
-            _format_entry(f, called_at, _expires_after, _annotation, _hash_annotation),
+            entry={
+                hash: _format_entry(
+                    f, called_at, _expires_after, _annotation, _hash_annotation
+                ),
+            },
         )
         logger.debug('caching successful.')
     return value
 
 
 def cache_wrapper(
-    _expires_after: Union[None, str, datetime.timedelta] = None,
-    _annotation: _AnnotationUnion = None,
+    _expires_after: Optional[Union[float, datetime.timedelta]] = None,
+    _annotation: Optional[str] = None,
     _hash_annotation: bool = False,
 ) -> Callable:
     """TODO: support wrapping bound methods."""

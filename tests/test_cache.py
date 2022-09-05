@@ -8,9 +8,6 @@ import logging
 import pytest
 
 
-from derpcache._cache import *
-
-
 faker = Faker()
 
 
@@ -330,7 +327,7 @@ class Test__cache:
             expected_entry1.update(
                 {
                     'annotation': annotation1,
-                    'hash_annotation': hash_annotation
+                    'hash_annotation': hash_annotation,
                 }
             )
         assert entry1 == expected_entry1
@@ -348,7 +345,7 @@ class Test__cache:
         assert hash2 != hash1
         expected_entry2 = {
             'callable': _cache._describe_callable(_func2),
-            'called_at': later.isoformat()
+            'called_at': later.isoformat(),
         }
         assert entry2 == expected_entry2
         assert _cache.get_by_hash(hash2) == result2
