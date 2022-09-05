@@ -13,6 +13,7 @@ setup(
     extras_require={
         'dev': [
             'commitizen==2.32.2',
+            'pre-commit==2.20.0',
         ],
         'lint': [
             'black==22.8.0',

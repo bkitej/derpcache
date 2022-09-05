@@ -1,6 +1,6 @@
 # derpcache
 
-`derpcache` is a rock-stupid pickle-based caching utility.  
+`derpcache` is a rock-stupid pickle-based caching utility.
 
 It's designed for people who love restarting their Jupyter kernels.
 
@@ -16,7 +16,7 @@ cultured_opinion = derpcache.cache(appreciate_masterpiece, *args, **kwargs)
 
 - You want a cache that will persist between kernels.
 - You want a simple functional interface that can be nestled deep in your code—no magicks.
-- You want a reasonable amount of visibility into what's in your cache. 
+- You want a reasonable amount of visibility into what's in your cache.
 - You want the ability to set expiration and archival rules. (TBD)
 
 ```python
@@ -33,8 +33,8 @@ for arg1 in args1:
             args = (arg1, arg2, arg3)
             response = derpcache.cache(make_http_request, *args)
             responses.append(response)
-            
-            
+
+
 df = pandas.DataFrame(responses)
 
 
