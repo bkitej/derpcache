@@ -80,19 +80,19 @@ def test__sort_nested_dicts():
             'a': OrderedDict(
                 {
                     'l': 1,
-                    'm': [1, OrderedDict({'o': {}, 'p': [1, 2]})],
+                    'm': (1, OrderedDict({'o': {}, 'p': (1, 2)})),
                     'n': OrderedDict({'q': 1, 'r': 2}),
                 }
             ),
             'b': OrderedDict(
                 {
-                    'd': [
+                    'd': (
                         OrderedDict({1: 'g', 2: 'h', 3: 'i'}),
                         1,
-                        OrderedDict({'j': [1, 2], 'k': 2}),
-                    ],
+                        OrderedDict({'j': (1, 2), 'k': 2}),
+                    ),
                     'e': 1,
-                    'f': [1, 2, [], {}],
+                    'f': (1, 2, (), {}),
                 }
             ),
         }
@@ -117,7 +117,7 @@ class Test__make_hash:
             return value
 
         args1, kwargs1 = args, kwargs
-        args2 = reversed(args)
+        args2 = args
         kwargs2 = _reverse_nested_dicts(kwargs)
 
         hash1 = _cache._hash_args(*args1, **kwargs1)

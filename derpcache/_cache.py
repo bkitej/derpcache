@@ -50,7 +50,7 @@ def _sort_nested_dicts(value: Union[dict, list, Any]) -> Union[dict, list, Any]:
     if isinstance(value, dict):
         value = {k: _sort_nested_dicts(v) for k, v in sorted(value.items(), key=str)}
     elif _is_non_str_iterable(value):
-        value = [_sort_nested_dicts(x) for x in value]
+        value = tuple(_sort_nested_dicts(x) for x in value)
     return value
 
 
@@ -69,10 +69,8 @@ def _to_string(arg: Any) -> str:
 
 
 def _hash_args(*args, **kwargs) -> str:
-    args_str = str(sorted(_to_string(x) for x in args))
-    kwargs_str = _to_string(kwargs)
-    string = args_str + kwargs_str
-    return hashlib.sha256(string.encode()).hexdigest()[:8]
+    args_string = _to_string(args) + _to_string(kwargs)
+    return hashlib.sha256(args_string.encode()).hexdigest()[:8]
 
 
 def _read_index() -> _IndexDict:
