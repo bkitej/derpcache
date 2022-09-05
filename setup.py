@@ -8,24 +8,24 @@ setup(
     author='Ben Johnson',
     author_email='bkitej@gmail.com',
     install_requires=[
-        'pickle5==0.0.11',
+        'pickle5',
     ],
     extras_require={
         'dev': [
-            'commitizen==2.32.2',
-            'pre-commit==2.20.0',
+            'commitizen',
+            'pre-commit',
         ],
         'lint': [
-            'black==22.8.0',
+            'black',
             'flake8<4',  # flakehell incompatible with >=4
-            'flakehell==0.9.0',
-            'mypy==0.971',
-            'types-setuptools==65.3.0',
+            'flakehell',
+            'mypy',
+            'types-setuptools',
         ],
         'test': [
-            'faker==14.2.0',
-            'pytest==7.1.2',
-            'pytest-freezegun==0.4.2',
+            'faker',
+            'pytest',
+            'pytest-freezegun',
         ],
     },
     zip_safe=False,  # for mypy to detect typing stubs
