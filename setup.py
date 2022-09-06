@@ -16,9 +16,7 @@ setup(
     author='Ben Johnson',
     author_email='bkitej@gmail.com',
     packages=find_packages(),
-    install_requires=[
-        'pickle5',
-    ],
+    install_requires=[],  # Nothing!
     extras_require={
         'dev': [
             'commitizen',
