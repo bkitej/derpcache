@@ -23,7 +23,6 @@ setup(
         'dev': [
             'commitizen',
             'pre-commit',
-            'twine',
         ],
         'lint': [
             'black',
