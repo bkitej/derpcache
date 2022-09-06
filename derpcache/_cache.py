@@ -19,8 +19,8 @@ _EntryDict = Dict
 _IndexDict = Dict[str, _EntryDict]
 
 
-_cache_DIR = '.derpcache'
-_cache_INDEX_FILE = 'index.json'
+_CACHE_DIR = '.derpcache'
+_CACHE_INDEX_FILE = 'index.json'
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,11 @@ def _get_root_dir() -> str:
 
 
 def _get_cache_path(s: str = '') -> str:
-    return os.path.join(_get_root_dir(), _cache_DIR, s)
+    return os.path.join(_get_root_dir(), _CACHE_DIR, s)
 
 
 def _get_index_path() -> str:
-    return _get_cache_path(_cache_INDEX_FILE)
+    return _get_cache_path(_CACHE_INDEX_FILE)
 
 
 def _is_non_str_iterable(x: Any) -> bool:
@@ -167,8 +167,8 @@ def get_index(clear_expired: bool = True) -> _IndexDict:
 
 
 def _init_cache() -> None:
-    if _cache_DIR not in os.listdir(_get_root_dir()):
-        os.mkdir(_cache_DIR)
+    if _CACHE_DIR not in os.listdir(_get_root_dir()):
+        os.mkdir(_CACHE_DIR)
         _write_index({})
 
 
