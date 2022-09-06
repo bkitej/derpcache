@@ -8,7 +8,7 @@ line-length = 88
 skip-string-normalization = true
 
 [tool.flakeheaven]
-exclude = ["venv", "README.md"]
+exclude = ["build", "venv", "README.md"]
 format = "grouped"
 
 [tool.mypy]
