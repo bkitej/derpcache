@@ -9,7 +9,7 @@ with open('README.md', 'r') as f:
 setup(
     name='derpcache',
     version='0.0.3',
-    description='Simple pickle-based caching utility.',
+    description='A simple pickle-based caching utility.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     license='GPL-3',
