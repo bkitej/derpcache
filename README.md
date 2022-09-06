@@ -11,7 +11,7 @@ import requests
 countries = [
     'Afghanistan',
     'Albania',
-    ...
+    # ...
     'Zambia',
     'Zimbabwe'
 ]
@@ -33,23 +33,23 @@ for country in countries:
 
 ### Expiration
 
-```python
+```doctest
 >>> import time
 >>> def long_running_func(*args, **kwargs):
 ...     time.sleep(1200)
 ...     print('running...')
-...     return 'done!'
+...     return 'done'
 ...
 >>> expires_after = 300
 >>> cache(long_running_func, _expires_after=expires_after)
 running...
-done!
+done
 >>> cache(long_running_func)
-done!
+done
 >>> time.sleep(expires_after)
 >>> cache(long_running_func)
 running...
-done!
+done
 ```
 
 ### Viewing cached entries
@@ -62,18 +62,18 @@ pprint(get_index(), sort_dicts=False)  # or, pandas.DataFrame.from_records
 ```
 
 ```json
-{'5e39b292': {'callable': '__main__.long_running_func',
-              'called_at': '2022-09-06T05:19:14.614796'},
- 'b37ab1af': {'callable': 'requests.api.get',
-              'called_at': '2022-09-06T05:21:35.157183',
-              'annotation': 'Afghanistan'},
- 'f0103017': {'callable': 'requests.api.get',
-              'called_at': '2022-09-06T05:21:35.814452',
-              'annotation': 'Albania'},
- '8861f226': {'callable': 'requests.api.get',
-              'called_at': '2022-09-06T05:21:36.084777',
-              'annotation': 'Zambia'},
- '19754ec0': {'callable': 'requests.api.get',
-              'called_at': '2022-09-06T05:21:36.341655',
-              'annotation': 'Zimbabwe'}}
+{"5e39b292": {"callable": "__main__.long_running_func",
+              "called_at": "2022-09-06T05:19:14.614796"},
+ "b37ab1af": {"callable": "requests.api.get",
+              "called_at": "2022-09-06T05:21:35.157183",
+              "annotation": "Afghanistan"},
+ "f0103017": {"callable": "requests.api.get",
+              "called_at": "2022-09-06T05:21:35.814452",
+              "annotation": "Albania"},
+ "8861f226": {"callable": "requests.api.get",
+              "called_at": "2022-09-06T05:21:36.084777",
+              "annotation": "Zambia"},
+ "19754ec0": {"callable": "requests.api.get",
+              "called_at": "2022-09-06T05:21:36.341655",
+              "annotation": "Zimbabwe"}}
 ```
