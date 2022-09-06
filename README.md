@@ -2,7 +2,7 @@
 
 `derpcache` is a simple pickle-based caching utility.
 
-It's mostly made for people who love restarting their Jupyter kernels.
+It's made for people who love nuking their Jupyter kernels.
 
 ```python
 from derpcache import cache
@@ -26,8 +26,8 @@ for country in countries:
 
 ### Why should I use `derpcache`?
 
-- You want a cache that will persist between/across kernels.
-- You want a simple functional interface—no magicks.
+- You want a cache that will persist between kernel restarts.
+- You want a simple functional interface—no IPython magics needed.
 - You want a reasonable amount of visibility into what's in your cache.
 - You want the ability to set expiration rules.
 
