@@ -201,7 +201,6 @@ def _format_entry(
     called_at: str,
     expires_after: Optional[Union[float, datetime.timedelta]],
     annotation: Optional[str],
-    hash_annotation: bool,
 ) -> _EntryDict:
     entry = {
         'callable': _describe_callable(f),
@@ -212,8 +211,6 @@ def _format_entry(
         entry['expires_after'] = _expires_after_to_float(expires_after)  # type: ignore
     if annotation:
         entry['annotation'] = annotation
-        # mypy thinks `hash_annotation` is a string here
-        entry['hash_annotation'] = hash_annotation  # type: ignore
     return entry
 
 
@@ -222,7 +219,6 @@ def cache(
     *args,
     _expires_after: Optional[Union[float, datetime.timedelta]] = None,
     _annotation: Optional[str] = None,
-    _hash_annotation: bool = False,
     **kwargs,
 ) -> Any:
     """
@@ -261,61 +257,12 @@ def cache(
 
             The results of the function call, as computed or retrieved from the cache.
 
-    Examples:
-
-        Vanilla usage:
-
-        >>> from derpcache import cache
-        >>> import time
-        >>>
-        >>> def long_running_func(*args, **kwargs):
-        ...     time.sleep(273)
-        ...     print('I never want to wait through that again, but still,')
-        ...     return 'I love John Cage.'
-        ...
-        >>> print(cache(long_running_func))
-        I never want to wait through that again, but still,
-        I love John Cage.
-        >>> print(cache(long_running_func))
-        I love John Cage.
-        >>> print(cache(long_running_func))
-        I love John Cage.
-
-        With `_expires_after`:
-
-        >>> from datetime import timedelta
-        >>> expires_after = timedelta(minutes=4, seconds=33)
-        >>> print(cache(long_running_func, _expires_after=expires_after))
-        I never want to wait through that again, but still,
-        I love John Cage.
-        >>> print(cache(long_running_func, _expires_after=expires_after))
-        I love John Cage.
-        >>> time.sleep(expires_after.total_seconds())
-        >>> print(cache(long_running_func, _expires_after=expires_after))
-        I never want to wait through that again, but still,
-        I love John Cage.
-
-        With `_annotation`:
-
-        >>> from derpcache import get_index
-        >>> from pprint import pprint
-        >>> annotation = 'I should listen to 4'33" again...'
-        >>> print(cache(long_running_func, _annotation=annotation))
-        I never want to wait through that again, but still,
-        I love John Cage.
-        >>> pprint(get_index())
-        {'25947d97': {'annotation': 'I should listen to 4\'33" again...',
-                      'callable': '__main__.long_running_func',
-                      'called_at': '2022-09-06T01:43:15.917150',
-                      'hash_annotation': False}}
     """
 
     _init_cache()
     hash = _hash_args(
         # lazy, but keeps :meth:`_hash_args` dumb
         _describe_callable(f),
-        _expires_after,
-        _annotation if _hash_annotation else '',
         *args,
         **kwargs,
     )
@@ -336,7 +283,6 @@ def cache(
                 called_at,
                 _expires_after,
                 _annotation,
-                _hash_annotation,
             ),
         )
         logger.debug('caching successful.')
@@ -346,7 +292,6 @@ def cache(
 def cache_wrapper(
     _expires_after: Optional[Union[float, datetime.timedelta]] = None,
     _annotation: Optional[str] = None,
-    _hash_annotation: bool = False,
 ) -> Callable:
 
     # TODO: support wrapping bound methods.
@@ -360,7 +305,6 @@ def cache_wrapper(
                 **kwargs,
                 _expires_after=_expires_after,
                 _annotation=_annotation,
-                _hash_annotation=_hash_annotation,
             )
 
         return wrapped

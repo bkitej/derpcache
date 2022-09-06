@@ -218,44 +218,6 @@ class Test__cache:
         assert index_entry['annotation'] == annotation
         assert len(caplog.messages) == 2
 
-    def test__cache__with_annotation__hashed_annotation(self, caplog):
-        args, kwargs = _randomize_args(), _randomize_kwargs()
-        annotation1 = faker.lexify()
-        annotation2 = faker.lexify()
-
-        result1_ann1 = _cache.cache(
-            _func1,
-            *args,
-            **kwargs,
-            _annotation=annotation1,
-            _hash_annotation=True,
-        )
-        result2_ann1 = _cache.cache(
-            _func1,
-            *args,
-            **kwargs,
-            _annotation=annotation1,
-            _hash_annotation=True,
-        )
-        result3_ann2 = _cache.cache(
-            _func1,
-            *args,
-            **kwargs,
-            _annotation=annotation2,
-            _hash_annotation=True,
-        )
-
-        assert result1_ann1 == result2_ann1
-        assert result3_ann2 != result1_ann1
-        index = _cache.get_index()
-        assert len(index) == 2
-        entry_ann1, entry_ann2 = index.values()
-        assert entry_ann1['annotation'] == annotation1
-        assert entry_ann1['hash_annotation'] is True
-        assert entry_ann2['annotation'] == annotation2
-        assert entry_ann2['hash_annotation'] is True
-        assert len(caplog.messages) == 2
-
     def test__cache__clear_cache(self, caplog):
         result1 = _cache.cache(_func1)
         result2 = _cache.cache(_func1)
@@ -286,41 +248,16 @@ class Test__cache:
         assert len(index) == 2
         assert len(caplog.messages) == 2
 
-    @pytest.mark.parametrize(
-        'scenario',
-        [
-            {
-                'name': 'default cache kwargs',
-                'cache_kwargs': {},
-            },
-            {
-                'name': 'unhashed annotation',
-                'cache_kwargs': {
-                    '_annotation': faker.lexify(),
-                },
-            },
-            {
-                'name': 'hashed annotation',
-                'cache_kwargs': {
-                    '_annotation': faker.lexify(),
-                    '_hash_annotation': True,
-                },
-            },
-        ],
-        ids=lambda x: x['name'],
-    )
-    def test__get_by_hash(self, caplog, freezer, scenario):
+    def test__get_by_hash(self, caplog, freezer):
         dt = faker.date_time()
         freezer.move_to(dt)
-        cache_kwargs = scenario['cache_kwargs']
-        annotation1 = cache_kwargs.get('_annotation')
-        hash_annotation = cache_kwargs.get('_hash_annotation', False)
+        annotation = faker.lexify()
 
         result1 = _cache.cache(
             _func1,
             *_randomize_args(),
             **_randomize_kwargs(),
-            **cache_kwargs,
+            _annotation=annotation,
         )
 
         index1 = _cache.get_index()
@@ -329,14 +266,8 @@ class Test__cache:
         expected_entry1 = {
             'callable': _cache._describe_callable(_func1),
             'called_at': dt.isoformat(),
+            'annotation': annotation,
         }
-        if annotation1:
-            expected_entry1.update(
-                {
-                    'annotation': annotation1,
-                    'hash_annotation': hash_annotation,
-                }
-            )
         assert entry1 == expected_entry1
         assert _cache.get_by_hash(hash1) == result1
         assert len(caplog.messages) == 1
@@ -359,19 +290,20 @@ class Test__cache:
         assert len(caplog.messages) == 2
 
 
-@pytest.mark.parametrize('expires_after_type', (int, datetime.timedelta))
+@pytest.mark.parametrize('expires_after_type', (float, datetime.timedelta))
 def test__expires_after__clear_expired(caplog, freezer, expires_after_type):
     dt_called = faker.date_time()
     freezer.move_to(dt_called)
     args, kwargs = _randomize_args(), _randomize_kwargs()
-    expires_after_int = faker.pyint(1, 3600)
-    expires_after_delta = datetime.timedelta(seconds=expires_after_int)
-    expires_after = (
-        expires_after_int if expires_after_type == int else expires_after_delta
-    )
+    expires_after_float = faker.pyfloat(min_value=1, max_value=3600, right_digits=6)
+    expires_after_delta = datetime.timedelta(seconds=expires_after_float)
+    if expires_after_type == float:
+        expires_after = expires_after_float
+    else:
+        expires_after = expires_after_delta
 
     result = _cache.cache(_func1, *args, **kwargs, _expires_after=None)
-    result_expires = _cache.cache(_func1, *args, **kwargs, _expires_after=expires_after)
+    result_expires = _cache.cache(_func2, *args, **kwargs, _expires_after=expires_after)
 
     index1 = _cache.get_index(clear_expired=False)
     assert len(index1) == 2
@@ -387,9 +319,9 @@ def test__expires_after__clear_expired(caplog, freezer, expires_after_type):
     assert entry == expected_entry
     assert result == _cache.get_by_hash(hash)
     expected_entry_expires = {
-        'callable': _cache._describe_callable(_func1),
+        'callable': _cache._describe_callable(_func2),
         'called_at': dt_called.isoformat(),
-        'expires_after': expires_after_int,
+        'expires_after': expires_after_float,
     }
     assert entry_expires == expected_entry_expires
     assert result_expires == _cache.get_by_hash(hash_expires)
