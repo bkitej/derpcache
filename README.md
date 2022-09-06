@@ -9,6 +9,7 @@ def appreciate_masterpiece(*args, **kwargs):
     time.sleep(273)
     return 'John Cage is the best composer of all time.'
 
+
 cultured_opinion = derpcache.cache(appreciate_masterpiece, *args, **kwargs)
 ```
 
@@ -34,9 +35,7 @@ for arg1 in args1:
             response = derpcache.cache(make_http_request, *args)
             responses.append(response)
 
-
 df = pandas.DataFrame(responses)
-
 
 #  what if I .fillna() with an entirely different emoji? ESC + 0 + 0
 ```

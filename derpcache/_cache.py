@@ -19,8 +19,8 @@ _EntryDict = Dict
 _IndexDict = Dict[str, _EntryDict]
 
 
-_CACHE_DIR = '.derpcache'
-_CACHE_INDEX_FILE = 'index.json'
+_cache_DIR = '.derpcache'
+_cache_INDEX_FILE = 'index.json'
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,11 @@ def _get_root_dir() -> str:
 
 
 def _get_cache_path(s: str = '') -> str:
-    return os.path.join(_get_root_dir(), _CACHE_DIR, s)
+    return os.path.join(_get_root_dir(), _cache_DIR, s)
 
 
 def _get_index_path() -> str:
-    return _get_cache_path(_CACHE_INDEX_FILE)
+    return _get_cache_path(_cache_INDEX_FILE)
 
 
 def _is_non_str_iterable(x: Any) -> bool:
@@ -52,15 +52,6 @@ def _sort_nested_dicts(value: Union[dict, list, Any]) -> Union[dict, list, Any]:
     elif _is_non_str_iterable(value):
         value = tuple(_sort_nested_dicts(x) for x in value)
     return value
-
-
-def _describe_callable(f: Callable) -> str:
-    """Note: Some callables are missing a :attr:`__qualname__`, so including `type()`
-    provides at least some information."""
-
-    mod = f.__module__
-    name = getattr(f, '__qualname__', str(type(f)))
-    return f'{mod}.{name}'
 
 
 def _to_string(arg: Any) -> str:
@@ -144,6 +135,19 @@ def _sort_index(index: _IndexDict) -> _IndexDict:
 
 
 def get_index(clear_expired: bool = True) -> _IndexDict:
+    """Retrieve `index.json` metadata dict about cache contents.
+
+    Note: When using `expires_after` expiration rules, expired cache contents will be
+        permanently removed upon calling this function (or checking the cache again),
+        unless `clear_expired` is set to `False`.
+
+    Args:
+        clear_expired (bool): Clear expired cache contents upon call.
+
+    Returns:
+        dict: The current state of the cache.
+    """
+
     index = _read_index()
     if clear_expired:
         index = _remove_expired_items(index)
@@ -152,16 +156,27 @@ def get_index(clear_expired: bool = True) -> _IndexDict:
 
 
 def _init_cache() -> None:
-    if _CACHE_DIR not in os.listdir(_get_root_dir()):
-        os.mkdir(_CACHE_DIR)
+    if _cache_DIR not in os.listdir(_get_root_dir()):
+        os.mkdir(_cache_DIR)
         _write_index({})
 
 
 def clear_cache() -> None:
+    """Removes cache directory and all files within it."""
+
     try:
         shutil.rmtree(_get_cache_path())
     except FileNotFoundError:
         pass
+
+
+def _describe_callable(f: Callable) -> str:
+    """Note: Some callables are missing a :attr:`__qualname__`, so including `type()`
+    provides at least some information."""
+
+    mod = f.__module__
+    name = getattr(f, '__qualname__', str(type(f)))
+    return f'{mod}.{name}'
 
 
 def _expires_after_to_float(expires_after: Union[float, datetime.timedelta]) -> float:
@@ -199,6 +214,91 @@ def cache(
     _hash_annotation: bool = False,
     **kwargs,
 ) -> Any:
+    """
+    Calls a function and caches the results.
+
+    Args:
+
+        f (Callable):
+
+            Function whose results are to be cached.
+
+        *args (optional):
+
+            The function call's arguments.
+
+        **kwargs (optional):
+
+            The function call's keyword arguments.
+
+        _expires_after (float, :obj:`datetime.timedelta`, optional):
+
+            Time elapsed after which the cache entry will be cleared.  Numeric values
+                are interpreted as seconds.
+
+        _annotation (:obj:`str`, optional):
+
+            Arbitrary string that can be passed to help identify or describe the call.
+
+        _hash_annotation (bool, optional):
+
+            Whether to add the annotation to the call's hash signature.
+
+    Returns:
+
+        value (any):
+
+            The results of the function call, as computed or retrieved from the cache.
+
+    Examples:
+
+        Vanilla usage:
+
+        >>> from derpcache import cache
+        >>> import time
+        >>>
+        >>> def long_running_func(*args, **kwargs):
+        ...     time.sleep(273)
+        ...     print('I never want to wait through that again, but still,')
+        ...     return 'I love John Cage.'
+        ...
+        >>> print(cache(long_running_func))
+        I never want to wait through that again, but still,
+        I love John Cage.
+        >>> print(cache(long_running_func))
+        I love John Cage.
+        >>> print(cache(long_running_func))
+        I love John Cage.
+
+        With `_expires_after`:
+
+        >>> from datetime import timedelta
+        >>> expires_after = timedelta(minutes=4, seconds=33)
+        >>> print(cache(long_running_func, _expires_after=expires_after))
+        I never want to wait through that again, but still,
+        I love John Cage.
+        >>> print(cache(long_running_func, _expires_after=expires_after))
+        I love John Cage.
+        >>> time.sleep(expires_after.total_seconds())
+        >>> print(cache(long_running_func, _expires_after=expires_after))
+        I never want to wait through that again, but still,
+        I love John Cage.
+
+        With `_annotation`:
+
+        >>> from derpcache import get_index
+        >>> from pprint import pprint
+        >>> annotation = 'I should listen to 4'33" again...'
+        >>> print(cache(long_running_func, _annotation=annotation))
+        I never want to wait through that again, but still,
+        I love John Cage.
+        >>> pprint(get_index())
+        {'25947d97': {'annotation': 'I should listen to 4\'33" again...',
+                      'callable': '__main__.long_running_func',
+                      'called_at': '2022-09-06T01:43:15.917150',
+                      'hash_annotation': False}}
+    """
+
     _init_cache()
     hash = _hash_args(
         # lazy, but keeps :meth:`_hash_args` dumb
@@ -237,6 +337,7 @@ def cache_wrapper(
     _annotation: Optional[str] = None,
     _hash_annotation: bool = False,
 ) -> Callable:
+
     # TODO: support wrapping bound methods.
 
     def decorator(f: Callable) -> Callable:
