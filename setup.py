@@ -17,7 +17,7 @@ setup(
     author_email='bkitej@gmail.com',
     packages=find_packages(),
     install_requires=[
-        'pickle5',
+        'jupyter',
     ],
     extras_require={
         'dev': [
