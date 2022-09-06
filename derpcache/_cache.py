@@ -14,7 +14,7 @@ import pickle
 import shutil
 
 
-# TODO: use typing.Mapping with stricter structure
+# TODO: use stricter structure
 _EntryDict = Dict
 _IndexDict = Dict[str, _EntryDict]
 
@@ -86,6 +86,17 @@ def _write_entry_to_index(
 
 
 def get_by_hash(hash: str) -> Any:
+    """Retrieve the function call's return value by its hash.
+
+    Args:
+
+        hash (:obj:`str`): The hash of the function call.
+
+    Returns:
+
+        The return value of the function call.
+    """
+
     with open(_get_cache_path(hash), 'rb') as f:
         value = pickle.load(f)
     return value
