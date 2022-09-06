@@ -52,7 +52,7 @@ running...
 done
 ```
 
-### Viewing cached entries
+### Viewing cached entries in new or restarted kernel
 
 ```python
 from derpcache import get_index
