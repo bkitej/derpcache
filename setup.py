@@ -16,6 +16,7 @@ setup(
     author='Ben Johnson',
     author_email='bkitej@gmail.com',
     packages=find_packages(),
+    python_requires=">=3.8",
     install_requires=[
         'jupyter',
     ],
