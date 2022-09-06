@@ -247,22 +247,16 @@ def cache(
 
             Arbitrary string that can be passed to help identify or describe the call.
 
-        _hash_annotation (bool, optional):
-
-            Whether to add the annotation to the call's hash signature.
-
     Returns:
 
         value (any):
 
-            The results of the function call, as computed or retrieved from the cache.
-
+            The return value of the original function call.
     """
 
     _init_cache()
     hash = _hash_args(
-        # lazy, but keeps :meth:`_hash_args` dumb
-        _describe_callable(f),
+        _describe_callable(f),  # lazy, but keeps :meth:`_hash_args` dumb
         *args,
         **kwargs,
     )
