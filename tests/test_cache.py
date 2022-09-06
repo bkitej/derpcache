@@ -394,7 +394,7 @@ def test__expires_after__clear_expired(caplog, freezer, expires_after_type):
     assert entry_expires == expected_entry_expires
     assert result_expires == _cache.get_by_hash(hash_expires)
 
-    dt_expired = dt_called + expires_after_delta
+    dt_expired = dt_called + expires_after_delta + datetime.timedelta.resolution
     freezer.move_to(dt_expired)
     index2 = _cache.get_index(clear_expired=True)
 

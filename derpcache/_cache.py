@@ -124,7 +124,7 @@ def _is_expired(entry: _EntryDict) -> bool:
         called_at = datetime.datetime.fromisoformat(entry['called_at'])
         expires_after = datetime.timedelta(seconds=expires_after)
         now = datetime.datetime.utcnow()
-        expired = called_at + expires_after >= now
+        expired = called_at + expires_after < now
     else:
         expired = False
     return expired
