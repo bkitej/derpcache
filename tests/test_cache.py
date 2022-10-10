@@ -6,6 +6,7 @@ from typing import Tuple
 from typing import Union
 import datetime
 import logging
+import os
 import pytest
 
 
@@ -20,6 +21,7 @@ _RandomDepthDict = Dict
 def _auto_clear_cache():
     yield
     _cache.clear_cache()
+    _cache.reset_cache_config()
 
 
 @pytest.fixture(autouse=True)
@@ -288,6 +290,64 @@ class Test__cache:
         assert entry2 == expected_entry2
         assert _cache.get_by_hash(hash2) == result2
         assert len(caplog.messages) == 2
+
+    @pytest.mark.parametrize(
+        'cache_dir',
+        [
+            faker.lexify('????/'),
+            faker.lexify('????/????/'),
+        ],
+    )
+    def test__cache__set_cache_dir(self, caplog, cache_dir):
+        config = _cache.update_cache_config(cache_dir=cache_dir)
+        assert config == {'cache_dir': cache_dir}
+
+        with caplog.at_level(logging.INFO):
+            result1 = _cache.cache(_func1)
+            result2 = _cache.cache(_func1)
+
+        assert len(caplog.messages) == 1
+        assert result1 == result2
+
+        assert _cache._DEFAULT_CACHE_DIR.rstrip('/') not in os.listdir('.')
+        cache_contents = os.listdir(cache_dir)
+        assert len(cache_contents) == 2
+        index = _cache.get_index()
+        assert len(index) == 1
+
+        _cache.clear_cache()
+        caplog.clear()
+        assert cache_dir.split('/')[0] not in os.listdir('.')
+
+        with caplog.at_level(logging.INFO):
+            result3 = _cache.cache(_func1)
+            result4 = _cache.cache(_func1)
+
+        assert len(caplog.messages) == 1
+        assert result3 == result4
+        assert result3 != result1
+
+        assert _cache._DEFAULT_CACHE_DIR.rstrip('/') not in os.listdir('.')
+        cache_contents = os.listdir(cache_dir)
+        assert len(cache_contents) == 2
+        index = _cache.get_index()
+        assert len(index) == 1
+
+        _cache.clear_cache()
+        caplog.clear()
+        assert cache_dir.split('/')[0] not in os.listdir('.')
+
+        config = _cache.reset_cache_config()
+
+        with caplog.at_level(logging.INFO):
+            result5 = _cache.cache(_func1)
+            result6 = _cache.cache(_func1)
+
+        assert len(caplog.messages) == 1
+        assert result5 == result6
+        assert result5 != result3
+
+        assert _cache._DEFAULT_CACHE_DIR.rstrip('/') in os.listdir('.')
 
 
 @pytest.mark.parametrize('expires_after_type', (float, datetime.timedelta))

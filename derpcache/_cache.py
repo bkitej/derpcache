@@ -19,19 +19,58 @@ _EntryDict = Dict
 _IndexDict = Dict[str, _EntryDict]
 
 
-_CACHE_DIR = '.derpcache'
 _CACHE_INDEX_FILE = 'index.json'
+_DEFAULT_CACHE_DIR = '.derpcache/'
+_CACHE_CONFIG_DEFAULTS = {
+    'cache_dir': _DEFAULT_CACHE_DIR,
+}
 
 
 logger = logging.getLogger(__name__)
 
 
-def _get_root_dir() -> str:
-    return os.environ.get('DERPCACHE_ROOT_DIR', '.')
+__cache_config = _CACHE_CONFIG_DEFAULTS.copy()
 
 
-def _get_cache_path(s: str = '') -> str:
-    return os.path.join(_get_root_dir(), _CACHE_DIR, s)
+def update_cache_config(**config) -> dict:
+    """Update cache config settings.
+
+    Args:
+
+        config (:obj:`dict`): Dictionary of configuration settings.
+
+            Currently supported keys:
+
+                "cache_dir": (path to) the desired cache directory.
+
+    Returns:
+
+        dict: The current configuration settings.
+    """
+
+    __cache_config.update(config)
+    return __cache_config
+
+
+def reset_cache_config() -> dict:
+    """Resets config settings to package defaults.
+
+    Returns:
+
+        dict: The default configuration settings.
+    """
+
+    for k in list(__cache_config.keys()):
+        __cache_config.pop(k)
+    return update_cache_config(**_CACHE_CONFIG_DEFAULTS)
+
+
+def _get_cache_dir() -> str:
+    return __cache_config['cache_dir']
+
+
+def _get_cache_path(filename: str = '') -> str:
+    return os.path.join(_get_cache_dir(), filename)
 
 
 def _get_index_path() -> str:
@@ -94,7 +133,7 @@ def get_by_hash(hash: str) -> Any:
 
     Returns:
 
-        The return value of the function call.
+        Any: The return value of the function call.
     """
 
     with open(_get_cache_path(hash), 'rb') as f:
@@ -167,18 +206,32 @@ def get_index(clear_expired: bool = True) -> _IndexDict:
 
 
 def _init_cache() -> None:
-    if _CACHE_DIR not in os.listdir(_get_root_dir()):
-        os.mkdir(_CACHE_DIR)
+    try:
+        os.makedirs(_get_cache_dir())
         _write_index({})
+    except FileExistsError:
+        pass
 
 
 def clear_cache() -> None:
-    """Removes cache directory and all files within it."""
+    """Removes cache directory and all files within it.  If configured cache directory
+    is a path, remove only the bottom-most empty directories within that path.
+    """
 
-    try:
-        shutil.rmtree(_get_cache_path())
-    except FileNotFoundError:
-        pass
+    def _remove_bottom_dir(path):
+        dirs = path.rstrip('/').split('/')
+        new_path = '/'.join(dirs[:-1])
+        return new_path
+
+    cache_path = _get_cache_path()
+    shutil.rmtree(cache_path, ignore_errors=True)
+    cache_path = _remove_bottom_dir(cache_path)
+    while cache_path:
+        try:
+            os.rmdir(cache_path)
+            cache_path = _remove_bottom_dir(cache_path)
+        except OSError:
+            break
 
 
 def _describe_callable(f: Callable) -> str:
